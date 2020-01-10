@@ -105,7 +105,7 @@ public class Java8TimeTest {
         System.out.println("-------");
 
         LocalDate localDate7 = LocalDate.now();
-        LocalDate localDate8 = LocalDate.of(2019, 1, 7);
+        LocalDate localDate8 = LocalDate.of(2021, 1, 25);//2020-1-10 : 2021-1-7 0年 11个月 28天
 
         Period period = Period.between(localDate7, localDate8);
         System.out.println(period.getYears());
@@ -114,7 +114,8 @@ public class Java8TimeTest {
 
         System.out.println("-------");
 
-        System.out.println(Instant.now());
+        //不带时区的UTC时间
+        System.out.println(Instant.now());//2020-01-10T08:58:46.778Z
 
     }
 }
