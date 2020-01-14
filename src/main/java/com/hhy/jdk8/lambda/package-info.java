@@ -62,10 +62,26 @@ package com.hhy.jdk8.lambda;
  * (String s) -> {System.out.println(s);}
  * () -> 42
  * () -> {return 3.1415};
+ * Java Lambda结构
+ * 一个Lambda表达式可以有零个或多个参数
+ * 参数的类型既可以明确声明,也可以根据上下文来推断。例如：（int a）与（a）效果相同
+ * 所有参数需包含在圆括号内,参数之间用逗号相隔。例如:（a,b）或(int a,int b) 或 (String a,int b,float c)
+ * 空圆括号代表参数集为空。例如：（）-> 42
+ * 当只有一个参数,且其类型可推导时,圆括号()可省略。例如: a -> return a*a
+ * Lambda表达式的主体可包含零条或多条语句
+ * 如果Lambda表达式的主体只有一条语句,花括号{}可省略。匿名函数的返回类型与该主体表达式一致
+ * 如果Lambda表达式的主体包含一条以上语句,则表达式必须包含在花括号{}中(形成代码块)。匿名函数的返类型与代码块的返回类型一致,若没有返回则为空
  *
+ * 函数式接口:
+ * 函数式接口是只包含一个抽象方法声明的接口
+ * java.lang.Runnable接口只声明了一个方法 void run()
+ * 每个Lambda表达式都能隐式地赋值给函数式接口
+ * FunctionalInterface
+ * java.lang.FunctionalInterface
+ * 标识所声明的接口为函数式接口
+ * 如果不满足函数式接口的要求,则编译器报错
+ * 并非必须,但凡满足函数式接口条件的接口,编译器均将其看作是函数式接口,即便没有添加FunctionalInterface注解亦如此
  *
- *
- * Consumer: 消费者,给出一个动作,执行该动作,不返回参数
- * Supplier: 提供者,
+ * 何为传递行为
  *
  */

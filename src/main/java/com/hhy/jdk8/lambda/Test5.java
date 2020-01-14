@@ -22,8 +22,8 @@ public class Test5 {
 
         System.out.println(names);
 
-        // expression o2.compareTo(o1)
-        // statement {return o2.compareTo(o1);}
+        //表达式 expression o2.compareTo(o1)
+        //语句   statement {return o2.compareTo(o1);}
 
         Collections.sort(names, Comparator.reverseOrder());
         Collections.sort(names, (String o1,String o2) -> o2.compareTo(o1));
