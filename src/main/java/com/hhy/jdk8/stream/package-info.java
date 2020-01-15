@@ -55,6 +55,10 @@ package com.hhy.jdk8.stream;
  * Terminal：
  * forEach、forEachOrdered、toArray、reduce、collect、min、max、count、anyMatch、noneMatch、findFirst、findAny、iterator
  *
+ * 串行流: stream
+ * 并行流: parallelStream
+ *
+ *
  * Stream 流
  *
  * 流由3部分构成:
