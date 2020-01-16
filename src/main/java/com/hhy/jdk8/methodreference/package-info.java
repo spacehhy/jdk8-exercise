@@ -1,4 +1,4 @@
-package com.hhy.jdk8.method;
+package com.hhy.jdk8.methodreference;
 
 /**
  * 方法引用: method reference

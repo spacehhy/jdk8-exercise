@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * StreamTest
+ * StreamTest - collect
  */
 public class Test2 {
 
@@ -19,9 +19,11 @@ public class Test2 {
         System.out.println("-------------------");
 
         Stream<String> stream1 = Stream.of("hello", "world", "hello world");
-        /*List<String> list = stream1.collect(Collectors.toList());
+        /*
+        List<String> list = stream1.collect(Collectors.toList());
         List<String> list = stream1.collect(() -> new ArrayList(), (theList,item) -> theList.add(item),
-                (leftList,rightList) -> leftList.addAll(rightList));*/
+                (leftList,rightList) -> leftList.addAll(rightList));
+        */
         //返回linkedList
         LinkedList<Object> list = stream1.collect(LinkedList::new, LinkedList::add, LinkedList::addAll);
         list.forEach(System.out::println);

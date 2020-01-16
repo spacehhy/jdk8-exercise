@@ -6,7 +6,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * StreamTest
+ * StreamTest - creat
  */
 public class Test1 {
 

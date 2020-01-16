@@ -1,4 +1,4 @@
-package com.hhy.jdk8.method.bean;
+package com.hhy.jdk8.methodreference.bean;
 
 public class Student {
 

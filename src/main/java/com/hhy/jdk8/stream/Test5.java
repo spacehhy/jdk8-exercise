@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * StreamTest
+ * StreamTest - terminal operation、distinct
  */
 public class Test5 {
 
@@ -14,6 +14,7 @@ public class Test5 {
 
 //        list.stream().map(item -> item.substring(0, 1).toUpperCase() + item.substring(1)).forEach(System.out::println);
 
+        //无任何输出,无结束操作 terminal operation
         list.stream().map(item -> {
             String result = item.substring(0,1).toUpperCase() + item.substring(1);
             System.out.println("test");
@@ -22,6 +23,8 @@ public class Test5 {
 
         System.out.println("-------------------");
 
+        //注意流使用的顺序,是否会生成一个无限循环的流
+//        IntStream.iterate(0, i -> (i + 1) % 2).distinct().limit(6).forEach(System.out::println);
         IntStream.iterate(0, i -> (i + 1) % 2).limit(6).distinct().forEach(System.out::println);
 
     }

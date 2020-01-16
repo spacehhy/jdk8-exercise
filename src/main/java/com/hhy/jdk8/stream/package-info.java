@@ -2,6 +2,8 @@ package com.hhy.jdk8.stream;
 
 /**
  * 流
+ * stream（和IO流没有关系）是针对Collection的增强。它专注于对集合对象进行各种非常便利、高效的聚合操作。
+ * 配合lambda表达式能提升编码效率和程序的可读性
  *
  * Collection提供了新的stream()方法
  * 流不存储值,通过管道的方式获取值
@@ -26,11 +28,9 @@ package com.hhy.jdk8.stream;
  * 每次转换原有Stream对象不改变,返回一个新的Stream对象(可以有多次转换),这就允许对其操作可以像链条一样排列,变成一个管道(pipeline)
  *
  * Stream -> Source
- *              |
- *              v
+ *              ↓
  *           Transforming values
- *              |
- *              v
+ *              ↓
  *           Operations
  *
  * Stream操作类型
@@ -52,8 +52,49 @@ package com.hhy.jdk8.stream;
  * Intermediate:
  * map(mapToInt,flatMap等)、filter、distinct、sorted、peek、limit、skip、parallel、sequential、unordered
  *
+ * map: 归类，结果一般是一组数据
+ * list.stream().map( x-> x.getSalary() )   //将person中salary归类成一组数据
+ *
+ * filter: 根据条件过滤
+ * list.stream().filter( p-> 1==p.getGender() )
+ *
+ * sorted: 排序
+ * list.stream().sorted( (p1,p2)-> p1.getNickName().compareTo(p2.getNickName()) )
+ *
+ * limit: 取集合中的前多少个元素
+ * list.stream().filter( p -> 1==p.getGender() ).limit(5)
+ *
+ *
+ *
  * Terminal：
  * forEach、forEachOrdered、toArray、reduce、collect、min、max、count、anyMatch、noneMatch、findFirst、findAny、iterator
+ *
+ * reduce: 用来计算结果，结果是一个数值
+ * Integer sum = list.stream().map( x->x.getSalary() ).reduce(0, (x,y) -> x+y );   //求总和，其中0是基准
+ *
+ * collect: 将处理后的结果输出到新的集合中,如list，set，map等 ;或者返回处理的结果，如求集合的个数，平均值等
+ * 『toList』
+ * list.stream().filter().collect(Collectors.toList());
+ * 『toSet』
+ * list.stream().filter().collect(Collectors.toSet());
+ * 『count』
+ * Long count = list.stream().filter( p -> p.getGender()==0 ).collect(Collectors.counting());
+ * 『summingDouble』
+ * Double sumSalary = list.stream().collect(Collectors.summingDouble( x->x.getSalary() ));
+ * 『toMap』
+ * Map map = list.stream().filter( p -> 1==p.getGender() ).limit(2).collect(Collectors.toMap(Person::getName,Person::getNickName));  // key=name ,value=nickname
+ *     map = list.stream().collect(Collectors.toMap( x->x.getNickName(),Function.identity()));    //key=nickname,  value = key对应的对象；注意key重复会抛出异常
+ *     map = list.stream().collect(Collectors.toMap( x->x.getNickName(),Function.identity(),(oldValue,newValue)->newValue));   //key重复， 取新的key
+ *     map = list.stream().collect(Collectors.toMap( x->x.getNickName(),Function.identity(),(oldValue,newValue)->oldValue));  //key重复， 取旧的key
+ *
+ *
+ * min: 求集合中最小对象
+ * Object obj = list.stream().min((p1,p2)-> p1.getSalary()-p2.getSalary() ).get();
+ *
+ * max: 求集合最大对象
+ * Object obj = list.stream().max((p1,p2)-> p1.getSalary()-p2.getSalary() ).get();
+ *
+ *
  *
  * 串行流: stream
  * 并行流: parallelStream
@@ -73,8 +114,8 @@ package com.hhy.jdk8.stream;
  *
  * stream.xxx().yyy().zzz().count();
  *       \________________/ \_____/
- *               \/           \/
- *            惰性求值      及早求值
+ *               ↓             ↓
+ *            惰性求值       及早求值
  *
  *
  * 1.流的创建方式,主要有三种:
@@ -84,7 +125,49 @@ package com.hhy.jdk8.stream;
  *
  * map: 映射
  * filter: 过滤
- * reduce: 汇聚??
+ * reduce: 汇聚
+ * 查找 映射 过滤 排序 分组 分区
  *
+ * 练习:
+ * Stream.iterator(1,item -> item +2).limit(6);
+ * 1 3 5 7 9 11
+ * 6 10 14 18 22
+ * 14 + 18 = 32
+ * 找出该流中大于2的元素,然后将每个元素乘以2,然后忽略掉流中的前两个元素,然后再取流中的前两个元素,最后求出流中元素总和
+ * int sum = stream.filter(item -> item > 2).mapToInt(item -> item * 2).skip(2).limit(2).sum();
+ *
+ * 我们发现Stream的链式调用和sql语句有着异曲同工的
+ *
+ * select name from student where age > 20 and address = 'beijing' order by age desc;
+ * 描述性语言:
+ * students.stream().filter(student -> student.getAge > 20).filter(student -> "beijing".equals(student.getAddress())).
+ * sorted(Comparator.comparingInt(Student::getAge)).forEach(student -> System.out.println(student.getMame));
+ *    ↑
+ * 内部迭代: 流与coder编写的指令性代码融合在一起,当遇到终止操作时统一执行函数式指令代码;操作的是流
+ *
+ * 外部迭代: (for/foreach/iterator)[foreach与iterator本质上是一会事儿,foreach是jdk语法糖];操作的是集合
+ *    ↓
+ * List<Student> list = new ArrayList<>();
+ *
+ * for (int i = 0; i < students.size(); ++i) {
+ *      Student student = students.get(i);
+ *      if(student.getAge > 20 && "beijing".equals(student.getAddress()){
+ *          list.add(student);
+ *      }
+ * }
+ *
+ * Collections.sorted(list,Comparator()...);
+ *
+ * for(Student student : list){
+ *      System.out.println(student.getName);
+ * }
+ *
+ * 集合关注的是数据与数据存储本身;
+ * 流关注的则是对数据的计算。
+ *
+ * 流与迭代器类似的一点是：流是无法重复使用或消费的。
+ *
+ * 中间操作都会返回一个Stream对象,比如说返回Stream<Student>,Stream<Integer>,Stream<String>
+ * 终止操作则不会返回Stream类型,可能不返回值,也可能返回其他类型的单个值。
  *
  */

@@ -42,4 +42,43 @@ package com.hhy.jdk8.optional;
  * Optional通常只作为方法返回值用来规避空指针异常问题
  *
  * Swift,Groovy,Scala....等语言都已存在 Optional的类似情况
+ *
+ * Optional的主要用处是可以有效的避免NullPointerException，配合lambda可以减少代码中大量的空指针判断，总之，代码更加优雅。
+ * 1)创建Optional对象：主要有两种方式
+ *  1.1  要求T非空，这种方式实际意义不大  Optional<T>  op  = Optional.of(T);
+ *  1.2  可以包装一个null的对象  Optional<T>  op = optional.ofNullable(T);
+ *
+ * 2)ifPresent
+ * op.ifPresent(p1->p1.setName("hello"));
+ * 如果T存在，则执行 p1->p1.setName("hello")，相当于
+ * if(T != null){
+ *   p1.setName("hello");
+ * }
+ *
+ * 3)orElse
+ * op.orElse(Person.getPerson());
+ * 如果T存在，返回；如果T不存在，则返回orElse里面的对象
+ * 等价于
+ *
+ * if(op.ifPresent()){
+ *    return op.get();
+ * }else{
+ *    Person.getPerson();
+ * }
+ *
+ * 4)orElseGet
+ * 如果T存在，返回；如果T不存在，则执行orElseGet里面的内容，并返回一个对象
+ * op.orElseGet(()->{
+ *     System.out.println("hello world");
+ *     System.out.println("new exception");
+ *     return new Person();
+ * });
+ *
+ * 5)orElseThrow
+ * 如果T存在，返回；如果T不存在，则执行orElseThrow里面的内容，并返回一个异常
+ * op.orElseThrow(()->{
+ *     System.out.println("exception");
+ *     return new ArithmeticException("null");
+ * });
+ *
  */

@@ -1,4 +1,4 @@
-package com.hhy.jdk8.method;
+package com.hhy.jdk8.methodreference;
 
 import java.util.Arrays;
 import java.util.List;

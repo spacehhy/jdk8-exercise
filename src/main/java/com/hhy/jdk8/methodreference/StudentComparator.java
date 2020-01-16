@@ -1,6 +1,6 @@
-package com.hhy.jdk8.method;
+package com.hhy.jdk8.methodreference;
 
-import com.hhy.jdk8.method.bean.Student;
+import com.hhy.jdk8.methodreference.bean.Student;
 
 public class StudentComparator {
 

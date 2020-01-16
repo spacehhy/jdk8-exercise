@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
- * StreamTest
+ * StreamTest Stream、parallelStream
  */
 public class Test6 {
 
@@ -21,7 +22,8 @@ public class Test6 {
 
         long startTime = System.nanoTime();
 
-        list.parallelStream().sorted().count();
+//        list.stream().sorted().collect(Collectors.toList());     //3671 3715
+        list.parallelStream().sorted().collect(Collectors.toList());       //1165 1210
 
         long endTime = System.nanoTime();
 

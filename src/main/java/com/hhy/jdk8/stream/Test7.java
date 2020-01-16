@@ -18,5 +18,14 @@ public class Test7 {
             System.out.println(item);
             return length;
         }).filter(length -> length == 5).findFirst().ifPresent(System.out::println);
+
+        /*
+        * result
+        * hello
+        * 5
+        * 流存在短路运算(重点)
+        * 第一个元素应用了所有(短路)操作
+        * 当执行findFirst操作时,执行符合条件后下一元素就不再重新执行操作了
+        */
     }
 }

@@ -1,6 +1,19 @@
 package com.hhy.jdk8.lambda;
 
 /**
+ * lambda表达式
+ * lambda表达式是将函数作为参数进行传递，从而实现了函数式编程（函数式编程在js中广泛应用）
+ * Runnable runnable2 = ()->{
+ *         System.out.println("runnable...");
+ *         System.out.println("run....");
+ * };
+ *
+ * 其中 () 代表参数， {}代表函数主体。表现为 (Type1 parameter1,Type2 parameter2........)->{statement1;statement2;......}
+ * 什么情况适用于lambda表达式呢？答案是 ：能够接收Lambda表达式的参数类型，是一个只包含一个方法的接口，称为函数式接口，
+ * 为此jdk1.8推出了一种标记注解@FunctionalInterface
+ *
+ *
+ *
  * 传统匿名内部类方式创建对象:
  * a.execute(callback(event){
  *      event.......
