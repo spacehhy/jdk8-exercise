@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import static java.util.stream.Collectors.*;
 
 /**
- *
+ * collect -> Collector
  */
 public class StreamTest1 {
 
@@ -21,11 +21,12 @@ public class StreamTest1 {
 
         List<Student> students = Arrays.asList(student1, student2, student3, student4, student5);
 
-        List<Student> students1 = students.stream().collect(Collectors.toList());
+        //无意义操作 目的了解collect方法
+        List<Student> students1 = students.stream().collect(toList());
         students1.forEach(System.out::println);
         System.out.println("------------");
 
-        System.out.println(students.stream().collect(Collectors.counting()));
+        System.out.println(students.stream().collect(counting()));
         System.out.println(students.stream().count());
         System.out.println("------------");
 
