@@ -1,6 +1,7 @@
 package com.hhy.jdk8.stream2;
 
 /**
+ * Collect:[收集器]
  * 1.collect: 收集器
  * 2.Collector作为collect方法的参数
  * 3.public interface Collector<T, A, R>
@@ -21,7 +22,7 @@ package com.hhy.jdk8.stream2;
  *   reduce: 汇聚; collect: 收集器;用法上类似,本质上有很大区别
  *   reduce要求不可变性,处理的对象是不可变的,每一次要生成新的结果
  *   collect是可变行为,可变结果容器;reduce并行时可能发生错乱
- * 7.
+ * 7.函数式编程最大的特点: 表示做什么,而不是如何做。
  *
  *
  *
@@ -46,6 +47,8 @@ package com.hhy.jdk8.stream2;
  * Collectors also have a set of characteristics
  * Collectors还有一个特征集合
  * CONCURRENT 并发  UNORDERED 无序  IDENTITY_FINISH 同一性[可进行强制类型转换]
+ * CONCURRENT与UNORDERED必须一起使用;CONCURRENT对于有序的容器比如list是无法使用的
+ *
  *
  *
  * <p>A sequential implementation of a reduction using a collector would
@@ -67,6 +70,8 @@ package com.hhy.jdk8.stream2;
  * 再假如 1,2 -> 1 [折叠:  2所有元素添加到1当中;最后返回结果容器1]
  *
  * 为了保证串行并行结果一致,需要满足两个约束: identity(同一性)、associativity(关联性,结合性)
+ *
+ *
  *
  *
  */

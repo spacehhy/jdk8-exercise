@@ -8,6 +8,12 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 /**
+ * 4.CustomCollector 自定义收集器2
+ * 输入: Set<String>
+ * 输出: Map<String,String>
+ *
+ * 示例输入: ["hello","world","hello world"]
+ * 示例输出: {hello:hello, world:world,hello world:hello world}
  *
  */
 public class MySetCollector2<T> implements Collector<T, Set<T>, Map<T, T>> {
@@ -31,6 +37,7 @@ public class MySetCollector2<T> implements Collector<T, Set<T>, Map<T, T>> {
          *
          */
         return () -> {
+            //串行流 只创建一个结果容器,并行流 CONCURRENT只创建一个结果容器;非CONCURRENT每个线程创建一个结果容器
             System.out.println("-----------");
             return new HashSet<T>();
         };
@@ -72,12 +79,20 @@ public class MySetCollector2<T> implements Collector<T, Set<T>, Map<T, T>> {
     @Override
     public Set<Characteristics> characteristics() {
         System.out.println("characteristics invoked!");
-
+        //特性集合加入 IDENTITY_FINISH 不会调用finisher直接执行强制转换
+        //造成ClassCastException: java.util.HashSet cannot be cast to java.util.Map
+        //return Collections.unmodifiableSet(EnumSet.of(Characteristics.UNORDERED,Characteristics.IDENTITY_FINISH));
+        //CONCURRENT: java.util.ConcurrentModificationException [一个线程修改集合,一个线程遍历集合造成并发修改异常]
+        //不输出combiner方法里lambda表达式中代码,证明操作的是同一容器
+        //return Collections.unmodifiableSet(EnumSet.of(Characteristics.UNORDERED,Characteristics.CONCURRENT));
+        //CONCURRENT 多个线程同时操作结果容器 如果不加CONCURRENT表示多个线程操作多个结果容器
+        //如果特性集合中包含CONCURRENT,那么就不要再累加器accumulator,不要做额外操作,即添加又遍历
         return Collections.unmodifiableSet(EnumSet.of(Characteristics.UNORDERED));
     }
 
     public static void main(String[] args) {
 
+        //当前系统线程数
         System.out.println(Runtime.getRuntime().availableProcessors());
 
         for (int i = 0; i < 1; ++i) {
@@ -87,6 +102,9 @@ public class MySetCollector2<T> implements Collector<T, Set<T>, Map<T, T>> {
 
             System.out.println("set: " + set);
 
+            //Map<String, String> map = set.stream().collect(new MySetCollector2<>());
+            //Map<String, String> map = set.stream().sequential().collect(new MySetCollector2<>());
+            //Map<String, String> map = set.stream().parallel().collect(new MySetCollector2<>());
             Map<String, String> map = set.parallelStream().collect(new MySetCollector2<>());
 
             System.out.println(map);
