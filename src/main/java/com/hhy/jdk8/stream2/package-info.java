@@ -71,6 +71,22 @@ package com.hhy.jdk8.stream2;
  *
  * 为了保证串行并行结果一致,需要满足两个约束: identity(同一性)、associativity(关联性,结合性)
  *
+ * Collectors工厂类
+ * characteristics: 几种类型
+ * CH_CONCURRENT_ID: [CONCURRENT,UNORDERED,IDENTITY_FINISH];
+ * CH_CONCURRENT_NOID: [CONCURRENT,UNORDERED] 并发,无序
+ * CH_ID: [IDENTITY_FINISH]  中间结果类型与最终结果类型一致，强制转换中间结果类型为最终结果类型，不执行finisher方法
+ * CH_UNORDERED_ID: [UNORDERED,IDENTITY_FINISH]
+ * CH_NOID: []
+ *
+ * 对于Collectors静态工厂类来说,其实现一共分为两种情况:
+ *
+ * 1.通过CollectorImpl来实现。
+ * 2.通过reducing方法来实现；reducing本身又是CollectorImpl来实现的。
+ *
+ * mapping方法,将收集器映射转换类型
+ * collectingAndThen 收集后转换成不可变列表;为了执行finisher方法,先去除特性集合中的IDENTITY_FINISH。
+ *
  *
  *
  *

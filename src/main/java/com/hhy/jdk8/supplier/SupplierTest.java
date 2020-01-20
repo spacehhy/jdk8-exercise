@@ -10,11 +10,13 @@ import java.util.function.Supplier;
 public class SupplierTest {
 
     public static void main(String[] args) {
+        //不接收参数返回一个结果 [主要用于工厂]
         Supplier<String> supplier = () -> "hello world";
         System.out.println(supplier.get());
 
         System.out.println("------------------");
 
+        //使用空参构造 不接受参数 返回一个对象
         Supplier<Student> supplier1 = () -> new Student();
         System.out.println(supplier1.get().getName());
 

@@ -1,7 +1,7 @@
 package com.hhy.jdk8.stream2;
 
 /**
- *
+ * 5.AutoCloseable
  */
 public class AutoCloseableTest implements AutoCloseable{
 
