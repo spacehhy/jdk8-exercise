@@ -9,6 +9,9 @@ package com.hhy.jdk8.binaryoperator;
  * the same type.
  *
  * 代表一种操作,这种操作是针对于相同类型的两个操作数,它会生成与操作数类型相同的结果,是BiFunction的一种特例
+ * BinaryOperator (二元运算符)
+ * 表示一种操作针对相同类型的两个操作数,并且返回一个与操作数相同类型的结果
+ *  BinaryOperator<T> extends BiFunction<T,T,T>
  *
  * BinaryOperator.minBy
  * BinaryOperator接收一个比较器对象[Comparator]返回一个BinaryOperator对象,这个对象会根据比较器调用apply方法
