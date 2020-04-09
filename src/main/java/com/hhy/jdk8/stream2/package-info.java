@@ -87,6 +87,58 @@ package com.hhy.jdk8.stream2;
  * mapping方法,将收集器映射转换类型
  * collectingAndThen 收集后转换成不可变列表;为了执行finisher方法,先去除特性集合中的IDENTITY_FINISH。
  *
+ * 源码分析
+ * Collection: 集合父接口 衍生出 list set
+ * list.stream(); -> Collection.stream()
+ * @since 1.8
+ * //接口中的默认方法,为了保证兼容性
+ * //将当前集合作为源,返回一个串行流
+ * //当方法不能返回分割迭代器 不可变的[IMMUTABLE]/并行的[CONCURRENT]/延迟绑定的[late-binding] 三种类型其中一个
+ * //这个方法应该被重写
+ * //默认的实现会从集合的spliterator当中创建一个串行流,返回一个针对当前集合元素的串行流
+ * default Stream<E> stream() {
+ *   return StreamSupport.stream(spliterator(), false);
+ * }
+ *
+ * spliterator: 分割迭代器
+ * @since 1.8
+ * //this表示当前集合对象
+ * //针对于集合的元素创建一个分割迭代器,实现应该对spliterator返回的特性值做一个文档化的说明,
+ * //这种特性值并不要求报告:如果这spliterator报告了固定大小(Spliterator#SIZED)并且这个集合不包含任何元素
+ * //默认的实现应该被子类重写,重写之后返回一个效率更高的分割迭代器,为了保留期望的stream()方法和parallelStream()方法的延迟行为
+ * //spliterator要么拥有什么样的特性值呢 不可变的[IMMUTABLE]或者并发的[CONCURRENT]或者是延迟绑定的[late-binding],这个流才是延迟行为的
+ * //如果上面这些都无法实现,那么重写的这个类应该去描述spliterator文档化的一些绑定的策略以及结构上的修改的一些行为{ 把修改描述出来 }
+ * //这些要求确保了由stream()以及parallelStream()两个方法所生成的流,它会最终反映出集合的内容,从终止流操作开始发起的时候,反映出集合内容
+ * //默认的实现会创建一个延迟绑定的spliterator,是从集合的迭代器[iterator];所创建的分割迭代器它会继承[inherits]集合迭代器的快速失败[fail-fast]属性
+ * //{遇到问题不再继续往下走了,立刻抛出异常,称之为快速失败};所创建的分割迭代器,它会拥有Spliterator#SIZED[固定大小]的特性值
+ * //所创建的分割迭代器还会拥有一个Spliterator#SUBSIZED[子大小]特性值 {当对分割迭代器分割之后会生成若干个块,每个块的大小又是固定的,不会发生变化,称之为SUBSIZED}
+ * //如果Spliterator分割迭代器里面没有cover任何元素,那么额外的特性值的报告
+ * default Spliterator<E> spliterator() {
+ *     return Spliterators.spliterator(this, 0);
+ * }
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
  *
  *
  *
