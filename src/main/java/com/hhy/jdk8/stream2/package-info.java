@@ -110,12 +110,23 @@ package com.hhy.jdk8.stream2;
  * //如果上面这些都无法实现,那么重写的这个类应该去描述spliterator文档化的一些绑定的策略以及结构上的修改的一些行为{ 把修改描述出来 }
  * //这些要求确保了由stream()以及parallelStream()两个方法所生成的流,它会最终反映出集合的内容,从终止流操作开始发起的时候,反映出集合内容
  * //默认的实现会创建一个延迟绑定的spliterator,是从集合的迭代器[iterator];所创建的分割迭代器它会继承[inherits]集合迭代器的快速失败[fail-fast]属性
- * //{遇到问题不再继续往下走了,立刻抛出异常,称之为快速失败};所创建的分割迭代器,它会拥有Spliterator#SIZED[固定大小]的特性值
- * //所创建的分割迭代器还会拥有一个Spliterator#SUBSIZED[子大小]特性值 {当对分割迭代器分割之后会生成若干个块,每个块的大小又是固定的,不会发生变化,称之为SUBSIZED}
- * //如果Spliterator分割迭代器里面没有cover任何元素,那么额外的特性值的报告
+ * //{遇到问题不再继续往下走了,立刻抛出异常,称之为快速失败};
+ * //所创建的分割迭代器,它会拥有Spliterator#SIZED[固定大小]的特性值
+ * //所创建的分割迭代器还会拥有一个Spliterator#SUBSIZED[子大小]特性值
+ * //{当对分割迭代器分割之后会生成若干个块,每个块的大小又是固定的,不会发生变化,称之为#SUBSIZED}
+ * //如果Spliterator分割迭代器里面没有cover任何元素,那么额外的特性值的报告除了#SIZED和#SUBSIZED之外并其他特性不会帮助客户端去控制或简化一些计算
+ * //然而,这样可以有助于一个不可变的并且空的分割迭代器spliterator实例共享的使用
+ * //对于空的集合来说并且可以帮助客户端来确定是否这样一个spliterator里面是不是没有元素
+ * //[创建的spliterator返回#SIZED和#SUBSIZED两个特性,其他特性不会对客户端的控制,计算起到帮助作用,但是它可以让分割迭代器实例得到重用]
+ * //返回一个针对集合元素的分割迭代器
  * default Spliterator<E> spliterator() {
  *     return Spliterators.spliterator(this, 0);
  * }
+ *
+ * Spliterator[接口] -> Spliterators[辅助类]
+ * Collector[接口] -> Collectors[辅助类]
+ *
+ *
  *
  *
  *
