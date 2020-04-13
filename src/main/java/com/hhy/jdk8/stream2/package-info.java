@@ -229,31 +229,193 @@ package com.hhy.jdk8.stream2;
  *
  * 返回一个Spliterator,它涵盖了部分元素,如果这个Spliterator是不能再继续分割的话,返回null
  *
+ *  estimateSize
+ * 返回元素大小的估算值,会被forEachRemaining遍历所遇到的元素,或者是无限的元素,或者未知元素,或者计算成本特别高的话,它就会返回一个MAX_VALUE最大值
+ *
+ * 如果Spliterator包含SIZED固定大小的特性值并且没有部分遍历和分割,或者这个集合是#SUBSIZED并且还没有部分被遍历那么这个estimateSize一定是一个精确的值,就是里面他所涵盖元素的个数
+ * 并且会被一个完整元素遍历遇到的元素的个数;否则estimateSize是估算的,可能不精确的,但是必须随着trySplit的调用要减少
+ *
+ * api说明
+ * 甚至一个不太精确的估算通常它也是有用的,并且计算成本不高的,比如一个sub-spliterator对应一个进制平衡的二叉树的,它会返回一个值,这个值会估算他的父亲节点元素估算的一半,如果根Spliterator
+ * 并不维护着一个精确值,那么它就会估算,根据他最大的一个深度变成2的指数次方
+ *
+ * 返回一个估算的大小或者是无限的元素,或者未知元素,或者计算成本特别高的话,它就会返回一个MAX_VALUE最大值
+ *
+ *  getExactSizeIfKnown[如果知道返回确定大小]
+ * 它是一个便捷方法,它直接返回一个estimateSize,如果Spliterator包含SIZED固定大小的特性值直接返回estimateSize,否则返回-1
+ * 如果Spliterator包含SIZED固定大小的特性值,这个方法的默认实现就会返回estimateSize()方法的结果,否则就返回-1
  *
  *
+ *  characteristics [特性值]
+ * 返回Spliterator及其元素特性值的集合,这种结果表示成这样的一个值,这个值来自于 {ORDERED}, {DISTINCT}, {SORTED}, {SIZED},{NONNULL}, {IMMUTABLE}, {CONCURRENT},{SUBSIZED}
+ * 对于给定的Spliterator如果我不断的重复的调用它的characteristics(),在trySplit调用之前,或者trySplit调用过程当中去调用这个方法,它永远都会返回这个结果。
  *
+ * 如果Spliterator返回了不一致的特性值的集合(有可能从单个调用,或者多次调用),对于使用Spliterator的任何就算都是不受保障的
  *
+ * api说明
+ * 在执行分割之前对于给定的Spliterator的特性值来说,它可能与分割之后的Spliterator的特性值是不同的,对于具体的实例参考{SIZED},{SUBSIZED},{CONCURRENT}
  *
+ *   hasCharacteristics [判断Spliterator是否包含了传进来的特性值]
+ * 返回true,如果当前Spliterator包含给定的特性值,
  *
+ *  getComparator [默认实现抛出不合法异常]
+ * 如果Spliterator的源是通过Comparator比较之后是SORTED带排序的,就会返回排序的比较器;如果源在Comparator的自然顺序下是SORTED带排序的,就会返回null
+ * 否则如果这个源不是有序的话,抛出一个非法异常
  *
+ *                  OfPrimitive [针对原生数据类型的接口] 具体实现类:{OfInt,OfLong,OfDouble}
+ * 专门针对于原生类型的分割迭代器
+ * <T> 由Spliterator返回来的元素的类型,这些类型必须是原生类型的包装类型,比如针对于int类型的包装类型Integer
+ * <T_CONS> 原生的consumer类型,类型必须是java.util.function.Consumer的针对原生的特化,比如针对int的 java.util.function.IntConsumer
+ * <T_SPLITR> 原生的分割迭代器的类型,必须是针对于<T>的Spliterator的原生类型的特化,比如针对Integer的 Spliterator.OfInt
  *
+ * boolean tryAdvance(IntConsumer action);  重写OfPrimitive
  *
+ * default boolean tryAdvance(Consumer<? super Integer> action) {}; 重写Spliterator
+ * 如果action是IntConsumer类型的实例,它会强制的类型转换成IntConsumer,然后传递给tryAdvance(java.util.function.IntConsumer)
+ * 否则这个action会被适配成IntConsumer的实例,方式是通过对IntConsumer的参数进行装箱,然后再传递给tryAdvance(java.util.function.IntConsumer)
  *
+ * Consumer类型的action强制类型转换为IntConsumer,按照我们日常的逻辑Consumer应该是IntConsumer的父类或者父接口,而事实上上述两接口没有任何继承关系
+ * 问题一,Consumer类型的action 为什么是 IntConsumer的实例? [action instanceof IntConsumer]
+ * 问题二,Consumer类型的action 为什么可以强制类型转换为 IntConsume? [tryAdvance((IntConsumer) action);]
  *
+ * 1.Consumer与IntConsumer的功能什么时候会重叠?当两个接口的accept(T t)方法的参数,是相同的类型,比如Consumer的参数是Integer
+ * 2.与函数式编程lambda有关,根据上下文判断类型  具体参见 ConsumerTest
+ * [(IntConsumer) action::accept idea单击accept进入 Consumer类,单击双冒号 进入IntConsumer,这是由于与上下文有关]
  *
+ * 分析 Spliterators.spliterator(this, 0); 进入实现可以看到
+ * new IteratorSpliterator<>(Objects.requireNonNull(c), characteristics);
+ * 继续分析 IteratorSpliterator
+ * // Iterator-based Spliterators 基于迭代器的分割迭代器
+ * 创建一个Spliterator使用给定集合的Iterator作为元素的源,然后将集合的size作为其初始大小
+ * 这个Spliterator是延迟绑定的,它也集成了快速失败的特性,并且实现了trySplit来执行有限的并行化
  *
+ * 这是一个分割迭代器使用了迭代器来进行元素操作,Spliterator实现了trySplit来执行有限的并行化
+ * 注意: 这里需要注意调用关系,如下:Collection.stream(); --> StreamSupport.stream(spliterator(), false);
+ * StreamSupport.stream(spliterator(), false) --> StreamSupport#stream -->
+ * new ReferencePipeline.Head<>(spliterator,StreamOpFlag.fromCharacteristics(spliterator),parallel);
  *
+ * spliterator() --> Spliterators.spliterator(this, 0); -->
+ * new IteratorSpliterator<>(Objects.requireNonNull(c),characteristics);-->
+ * public IteratorSpliterator(Collection<? extends T> collection, int characteristics) {...}; [调用此构造方法]
  *
+ * 首先来看一下 StreamSupport
+ * 提供了用于创建和操作流的底层的一个辅助方法
+ * 它几乎只是用于库的编写者,用于展现数据结构流的视图,这个类主要是底层类的编写者使用,而大多数静态的流的用法都针对于最终用户去设计的,其实
+ * 是位于各种各样的Stream类当中,{对于使用者只需要与Stream相应的提供的方法就可以了,不会直接跟StreamSupport打交道}
  *
+ * ReferencePipeline [引用管道]{将流的中间操作和流的源泉}
+ * 流当中使用的 map filter forEach等方法,其实使用的都是 ReferencePipeline的实现
+ * 这是一个抽象的基类,用于描述中间的管道阶段或者是管道源阶段(stage),元素类型是U
+ * Head [引用管道的源阶段]  --> super --> AbstractPipeline [初始化操作]
+ * 为什么这样设计,源阶段与中间阶段本质上没有区别,不持有任何数据,数据由底层集合/数组持有,流本身不关注数据,关注的是计算本身,只是在某些属性的
+ * 设定上是不一样的,比如ReferencePipeline是通用的,Head是最开始的源的阶段 对于Head没有previousStage[前一个阶段],普通的ReferencePipeline
+ * 既有前面阶段,也有后面阶段
  *
+ * ReferencePipeline表示流的源阶段与中间阶段
+ * ReferencePipeline.Head表示流的源阶段
  *
+ * 二者在大部分的属性的设定上是类似的,但存在一些属性是不同的,比如说Head是没有previousStage的
+ * 而ReferencePipeline则是存在previousStage的,等等
  *
+ * static class Head<E_IN, E_OUT> extends ReferencePipeline<E_IN, E_OUT> {
+ * <E_IN> type of elements in the upstream source [上游源的元素类型]
+ * <E_OUT> type of elements in produced by this stage [这个阶段生成的元素类型]
  *
+ * AbstractPipeline "管道"的抽象基类,流接口以及其原生特化的核心实现,它会管理流管道的构建以及计算
+ * 代表了流管道初始的一部分,它封装了一个源以及零个或者是多个中间操作,每一个单个的AbstractPipeline对象称之为stage[阶段],每一个阶段
+ * 要么是描述的流的源,要么是描述的中间操作
  *
+ * 一个具体的中间阶段,通常是从一个AbstractPipeline构件出来的,一个形状特化的管道类继承,AbstractPipeline包含了大多数机制,比如它包含
+ * 了评价计算管道的机制,并且实现了方法,这些方法会被这些实现所使用,与原生特定相关的类会添加了一些辅助方法用来处理结果集合添加到特定的
+ * 与Shape相关的操作[避免了自动拆装箱操作]
  *
+ * 当连接完新的操作之后,或者执行了终止操作之后,那么流被认为[consumed]消费掉了,而且再也不会有更多中间或终止操作被允许添加到流实例当中
  *
+ * 对于串行流以及所有的中间操作都是无状态的并行流,管道的计算是在单个的过程当中去完成的,而单个的过程实际上将所有的操作放在一起一次性完成
+ * 对于拥有状态操作的并行流,执行就被分为几个段来执行,其中每一个有状态的操作都会标识一个段的结尾,然后每一个段落都会被单独的计算,而且每一
+ * 段的结果都会被用作下一段的输入,在所有的情况当中,源数据都不会被消费直到一个终止操作开始.
  *
+ * Collection.stream():用于构造spliterator对象,而spliterator对象包含了对当前对象的引用,stream方法构造一个ReferencePipeline对象
+ * 表示流源对象,至此流源就构造完了
  *
+ * forEach [这个操作的行为是不确定的,对于并行流管道来说,它并不会保证它会遵循这流当中所遇到的顺序,因为如果遵循的话,将会牺牲掉并行的优势
+ * 对于任意的给定的元素,这个动作可能在任意时间,在库所选择的任意的线程中去执行,如果这个动作访问了共享的状态,那么它就需要负责提供所需要的
+ * 同步synchronization]
+ * forEach() 实现有两个
+ * Head in ReferencePipeline.forEach() 它是一个针对于管道源的优化的串行的终止操作 forEach()方法直接作用在源上时,直接调用Head的方法
+ * ReferencePipeline.forEach()
+ *
+ * sourceStageSpliterator
+ * 如果当前管道的阶段就是源阶段的话,直接获取到源阶段的分割迭代器,这个管道在方法被调用之后,它就会被消费掉并且会被成功返回
+ *
+ * sourceStageSpliterator().forEachRemaining(action) --> Spliterator.forEachRemaining() -->
+ * [Spliterators内部类]IteratorSpliterator.forEachRemaining(Consumer<? super T> action) -->
+ * Iterator.forEachRemaining(Consumer<? super E> action) [@since 1.8]
+ * 它会对剩余的每一个元素都会执行给定的动作,直到所有的元素都被处理完,或者动作本身抛出异常,动作是以迭代的顺序被执行,如果这个顺序是被指定的
+ * 异常抛出取决于调用者确认
+ *
+ * p.s.对于最为简单的迭代来说,显然用流的方式是不如用传统方式效率更高.[流为了实现迭代,经历了多个转换,创建多个对象,最终转换成迭代器[Iterator]遍历
+ * 但凡在流中夹杂一个或多个中间操作,情况就会大为的改观,因为流由原来的外部迭代转换为内部迭代]
+ *
+ * 问题: [Spliterators内部类]IteratorSpliterator.forEachRemaining(Consumer<? super T> action)处打断点,发现程序不走该方法
+ * 设计方法重写,
+ *
+ * map() [返回一个流,将给定的函数应用到流当中每一个元素所返回的结果,这是一个中间操作]
+ * map()方法最终由ReferencePipeline执行
+ * 创建StatelessOp[无状态操作]子类的实现,重写opWrapSink[sink=饮水槽]
+ * StatelessOp 针对任何一个流的无状态的中间阶段
+ *                          ReferencePipeline[中间以及源统一概念]
+ *                          /              \
+ *                         /               \
+ *                       Head[源]        StatelessOp[中间无状态操作]
+ *
+ * 构造方法用于追加一个中间操作,在一个既有的pipeline上面[流的串联]
+ * ReferencePipeline(AbstractPipeline<?, P_IN, ?> upstream, int opFlags) {
+ *   super(upstream, opFlags);
+ * }
+ *
+ * Sink[Consumer的扩展,用于在整个的流管道的各个阶段去处理值,还提供了一些额外的方法去管理大小信息,控制流程,在首次调用Sink的accept
+ * 方法之前,你必须要先调用begin()方法,来去通知数据马上要过来了,可选的还可以通知数据量是多少,在所有的数据都发送过来之后,必须要调用
+ * end()方法,在调用end()方法之后就不应该再去调用begin()方法,除非你再去调用begin()方法{Sink是可以重用的},Sink还提供了了一种机制
+ * ,可以协作的发出信号说它不希望接收任何数据了通过{cancellationRequested()实现},这样的话一个流就可以轮询在发送工作数据到Sink之前
+ * 是不是取消了等等]
+ *
+ * 一个Sink可能处于两种状态之一,第一种状态叫初始化状态;第二种叫激活状态,首先它是从初始状态开始的,begin()方法会将它转换为激活状态,而
+ * end()方法又会将它转化为初始状态,这样调用end()方法之后就可以重用了,数据接收方法比如accept()只在激活状态才是有效的
+ *
+ * 一个流管道包含了一个源,零个或多个中间操作,比如过滤[filtering]/映射[mapping],还有一个终止阶段,比如汇聚[reduction]或者[for-each]
+ * 具体来说呢,考虑下面管道
+ *
+ * <pre>{@code
+ *     int longestStringLengthStartingWithA
+ *         = strings.stream()
+ *                  .filter(s -> s.startsWith("A"))
+ *                  .mapToInt(String::length)
+ *                  .max();
+ * }</pre>
+ *
+ * 这里,我们有三个阶段,过滤,映射和汇聚,过滤阶段会消耗字符串,并且发射[emits]出来字符串的子集,映射阶段会消耗字符串,并且发射出来的是int值
+ * ,汇聚阶段会消耗掉这些int值,并计算出最大值
+ *
+ * 一个Sink实例用于表示管道中的每一个阶段,无论这个阶段是接收对象,原生值 int, long, double;Sink拥有一个入口点,这样我们就不需要专门接口
+ * 针对原生类型的特化,这个入口点对于上面的管道来说就是过滤,它会发送一些数据向下游到Sink当中,然后进行映射,转而会发送一些整型值向下游,Sink
+ * 上面,进行汇聚,与给定决断的Sink实现是期望去知道下一个阶段数据类型,并且调用正确的accept()方法,对他的下游来说,与之类似每个阶段都必须使用
+ * 正确的accept()方法与接收数据类型相关的
+ *
+ * 此外Sink有特定的OfInt 等等~~~~~~~~~
+ *
+ * 链接的子类型ChainedInt,并不仅仅实现了OfInt,还维护了一个下游字段表示下游Sink
+ *
+ * ChainedReference [链接引用]
+ * 一个抽象的Sink实现,用于创建Sink的一个链 {@code begin}, {@code end}, and{@code cancellationRequested}方法都会链接到下游Sink,
+ * 这个实现会接收一个下游的Sink,未知的输入类型并且生成一个Sink对象,accept()方法的实现必须要调用正确的下游Sink
+ *
+ * AbstractPipeline#copyInto();[将从Spliterator中获取的元素,推向到所提供的Sink当中,如果流管道已知拥有一个短路的阶段的话那么
+ * Sink#cancellationRequested()就会被检查每个元素之后cancellation is requested被请求就会停止掉]
+ *
+ * wrappedSink.begin(spliterator.getExactSizeIfKnown());  //begin()
+ * spliterator.forEachRemaining(wrappedSink);             //accept()
+ * wrappedSink.end();                                     //end()
  *
  *
  *
