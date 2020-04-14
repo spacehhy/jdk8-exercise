@@ -418,6 +418,165 @@ package com.hhy.jdk8.stream2;
  * wrappedSink.end();                                     //end()
  *
  *
+ * map() [映射]
+ * map -> Stream#map() -> ReferencePipeline#map() -> return new StatelessOp(){...}
+ * StatelessOp extends ReferencePipeline
+ * ReferencePipeline extends AbstractPipeline implements Stream
+ * 因此 StatelessOp 是在Stream的层级之下,ReferencePipeline#map()返回类型为Stream
+ * 返回的是继承了StatelessOp的一个子类的对象,这个子类是匿名类
+ * StatelessOp 表示一个无状态的流的中间阶段的基类
+ *
+ * StreamShape 枚举类 REFERENCE [引用类型] INT_VALUE LONG_VALUE DOUBLE_VALUE[原生类型]
+ *
+ * ReferencePipeline#map() -> new StatelessOp(this,...){...}
+ * StatelessOp的构造方法中第一个参数为AbstractPipeline 而this表示ReferencePipeline
+ * StatelessOp的构造方法调用父类的构造方法,即ReferencePipeline的构造方法[构造方法用于将中间操作追加到既有的管道上面]
+ * ReferencePipeline的构造方法继续调用父类的构造方法,即AbstractPipeline的构造方法[构造方法用于将中间操作追加到既有的管道上面]
+ * 如何理解上有管道和下游管道,例如:
+ * stream   map   filter   forEach
+ * 加入当前处于map阶段,上游[upStream]为 stream,下游[downStream]为 filter
+ *
+ * AbstractPipeline本质上是双向链表,通过双向链表可以将流的操作有机的连接起来
+ * opWrapSink [option 操作 wrap 包装 sink 蓄水池] 操作包装的意思
+ * 功能:将流的所有操作包装起来,本来是三个独立的操作[map filter forEach],opWrapSink将三个操作合三为一,一个元素一次就经历了三个操作的
+ * 所有阶段
+ *
+ * Sink类规定了 begin方法 end方法 以及流真正的执行方法 accept,并且规定了这三个方法的执行顺序,这里用到了一种模板方法模式,但凡父类里规定
+ * 了一种执行顺序,顺序里每一个步骤怎么做,父类不管需要子类去实现,但凡是这种情况,毫无疑问一定是用到了模板方法模式
+ *
+ * ReferencePipeline#map() -> new StatelessOp(this,...){
+ *   @Override
+ *   Sink<P_OUT> opWrapSink(int flags, Sink<R> sink) {
+ *     return new Sink.ChainedReference<P_OUT, R>(sink) {
+ *         @Override
+ *         public void accept(P_OUT u) {
+ *            downstream.accept(mapper.apply(u));
+ *         }
+ *     }
+ *   }
+ * }
+ * opWrapSink -> Sink.ChainedReference
+ *
+ * AbstractPipeline -> abstract Sink<E_IN> opWrapSink(int flags, Sink<E_OUT> sink);
+ * 接收一个输出返回一个输入
+ * 这个方法接收了一个sink对象,这个sink本身会接收这个操作的结果并且返回一个sink对象,返回的sink会接收这个操作的输入类型的元素,而且
+ * 还会执行这个操作,然后将结果传递给提供的sink[就是因为这种设计,才能将多个sink有机的包装起来]
+ *
+ * 这个实现可以使用参数flags来去优化sink的一个包装,比如说输入已经是DISTINCT,那么实现Stream#distinct()就可以直接它传递的sink本身
+ * 因为已经是DISTINCT,没有必要再去判断,想到于做了一个优化
+ *
+ * 参数sink[传递进来sink] 处理完之后的元素应该发送给参数sink,
+ * 返回sink 这个sink会接收参数,然后在每一个去执行对应的操作和动作,最后将执行后的结果,(如果有的话)传递给所提供的sink
+ *
+ * opWrapSink可以认为是流的三个操作过程的其中一个,即 begin opWrapSink[中间流组装] end
+ *
+ *      Terminal operations from Stream 终止操作 [forEach -> ReferencePipeline.forEach()]
+ * public void forEach(Consumer<? super P_OUT> action) {
+ *     evaluate(ForEachOps.makeRef(action, false));
+ * }
+ * -> ForEachOps.makeRef(action, false)
+ *
+ * ForEachOps
+ * 用来创建TerminalOp实例的工厂,TerminalOp本身会执行一个动作针对于流当中的每一个元素,所支持的变化包括无序的遍历(元素被提供给consumer
+ * 对象,只要能遇到就提供给它),还有一种有序的遍历(元素被提供给consumer对象,以他们所遇到的顺序提供)
+ *
+ * 元素被提供给consumer对象,在任意的线程当中,以他们可用的任意顺序被提供给consumer对象;对于有序的遍历的话,就可以确保 在处理一个元素一定
+ * 是发生在处理后续的遇到的顺序元素之前。  某一个 事情一定是发生在一个事情之前[happens-before]
+ *
+ * makeRef
+ * 构造一个TerminalOp,它会针对于流中的每一个元素,去执行所给定的动作
+ * ForEachOps.makeRef(action, false) -> return new ForEachOp.OfRef<>(action, ordered);
+ *
+ * 返回值TerminalOp的含义
+ * 在流管道当中的一个操作,它会接收一个流作为输入,然后生成一个结果或者是拥有side-effect 副作用
+ * 一个TerminalOp,会拥有一个输入类型和一个流的shape[ REFERENCE [引用类型] INT_VALUE LONG_VALUE DOUBLE_VALUE[原生类型] ]还会有
+ * 一个结果类型,一个TerminalOp还会拥有一组 operation flags 操作标识,它描述了操作是如何处理流当中的元素的,比如说短路,或者是说按照
+ * 遇到的顺序去执行
+ * TerminalOp必须提供一种串行和并行的操作的实现,根据给定的流源和针对特定的中间操作
+ * TerminalOp#evaluateParallel 执行并行的计算,使用给定的PipelineHelper,它描述了上游的中间操作,默认会执行一个串行的实现
+ * TerminalOp#evaluateSequential 执行串行的计算,使用给定的PipelineHelper
+ * 所有的终止操作都应该实现TerminalOp,
+ * FindOp in FindOps
+ * ForEachOp in ForEachOps
+ * MatchOp in MatchOps
+ * OfDouble in ForEachOp in ForEachOps
+ * OfInt in ForEachOp in ForEachOps
+ * OfLong in ForEachOp in ForEachOps
+ * OfRef in ForEachOp in ForEachOps
+ * ReduceOp in ReduceOps
+ *
+ * //ForEachOps.makeRef(action, false) -> return new ForEachOp.OfRef<>(action, ordered);
+ * ForEachOp
+ * 这是一个终止操作,它会计算一个流管道并且将输出发送给自身作为一个TerminalSink,元素会发送给任意一个线程,如果这个遍历是无序的话,那么
+ * 它就会发送的时候就会独立于流的元素的遇到顺序
+ * 这个终止操作是一个无状态操作,对于并行的计算来说,每一个leaf的实例ForEachTask[并行计算],都会发送给同一个TerminalSink引用,本身它
+ * 是这个类的实例
+ *
+ * ReferencePipeline.forEach -> evaluate(ForEachOps.makeRef(action, false)); [action赋给成员变量,以及初始化操作]
+ * 因此关注 evaluate()
+ * 一个终止的计算方法,它会使用一个终止的操作来去计算管道,并且生成一个结果
+ * 调用的是ForEachOps.makeRef(action, false)) 返回的TerminalOp#evaluateParallel 或 TerminalOp#evaluateSequential 进行计算
+ *
+ * evaluate() -> terminalOp.evaluateSequential(this, sourceSpliterator(terminalOp.getOpFlags()));
+ * sourceSpliterator
+ * 获取这个管道阶段的源的分割迭代器,对于串行的或者是无状态的并行管道来说就是源分割迭代器,而对于一个有状态的并行管道,返回的Spliterator
+ * 描述了所有计算一直往下进行的结果并且包含了最近的一种有状态的操作
+ *
+ * TerminalOp#evaluateSequential
+ * <P_IN> R evaluateSequential(PipelineHelper<E_IN> helper,Spliterator<P_IN> spliterator);
+ *
+ * PipelineHelper
+ * 用于执行流管道的辅助类,它会捕获关于流管道的所有的信息,[输出的种类,中间的操作,流的标志位,并行或串行]
+ * PipelineHelper描述了一个流管道的最初的分块,包含了它的源中间的操作,以及任何额外的附加的一些合并的信息,关于终止的或者有状态的操作
+ * 遵循由PipelineHelper所描述的上一个中间操作,PipelineHelper会传递给{TerminalOp#evaluateParallel(PipelineHelper, java.util.Spliterator)},
+ * {TerminalOp#evaluateSequential(PipelineHelper, java.util.Spliterator)},和{AbstractPipeline#opEvaluateParallel(PipelineHelper, java.util.Spliterator,
+ * java.util.function.IntFunction)}方法,它就可以使用PipelineHelper访问关于管道的各种各样的信息等等
+ * [用于描述流管道的各种各样的信息]
+ *
+ * ForEachOps#evaluateSequential
+ * public <S> Void evaluateSequential(PipelineHelper<T> helper,Spliterator<S> spliterator) {
+ *      return helper.wrapAndCopyInto(this, spliterator).get();
+ * }
+ * helper.wrapAndCopyInto [包装再拷贝进去]
+ * 它是将当前PipelineHelper所描述的管道阶段,把管道阶段应用给所提供的Spliterator对象,同时把结果发送给sink对象
+ *
+ * abstract<P_IN, S extends Sink<P_OUT>> S wrapAndCopyInto(S sink, Spliterator<P_IN> spliterator);
+ * PipelineHelper#wrapAndCopyInto -> AbstractPipeline#wrapAndCopyInto
+ * final <P_IN, S extends Sink<E_OUT>> S wrapAndCopyInto(S sink, Spliterator<P_IN> spliterator) {
+ *     copyInto(wrapSink(Objects.requireNonNull(sink)), spliterator);
+ *     return sink;
+ * }
+ * --> AbstractPipeline#wrapSink
+ * 对sink进行包装,接收一个sink,sink本身会接受PipelineHelper的输出类型的元素,然后使用一个sink对其进行包装,这个sink会接收输入类型的
+ * 元素并实现所有的中间操作,将结果delivering传递给所提供的[参数]sink上面[完成对流当中多个操作的串联]
+ *
+ * PipelineHelper#copyInto
+ * abstract<P_IN> void copyInto(Sink<P_IN> wrappedSink, Spliterator<P_IN> spliterator);
+ * 将从Spliterator对象当中所获取到的元素,把他推到所提供的sink当中,如果这个流管道已经知道有短路这个阶段的话,接着它就会进行短路判断
+ * 这个方法会遵循sink协议在调用之前先去调用sink#begin,然后紧接着调用sink#accept,最后调用sink#end,把所有元素都推送完毕
+ * [把流中元素推到包装好中间操作的sink对象当中,操作串联起来形成wrappedSink]
+ *
+ * 流为什么说是惰性的,流的操作是首先把操作包装串联起来,然后让每一个元素依次的经过每一个操作,而不是先让所有的元素经过第一个操作,再经过
+ * 第二个操作,流的短路操作,只要找到符合条件元素之后,就不再进行后续处理了
+ *
+ *                                              BaseStream
+ *                                                  |
+ *                                            AbstractPipeline
+ *                                                  |
+ *                                            ReferencePipeline
+ *                                             /      |        \
+ *                                          Head statelessOp statefulOp  --  (OfRef)
+ *                                        源操作  中间操作 无状态操作 有状态操作
+ *
+ *
+ *                                              TerminalOp
+ *
+ *                              FindOp    ForEachOp    MatchOp    ReduceOp
+ *
+ *     ReferencePipeline 与 TerminalOp进行连接,连接后就可以将所要使用的终止操作追加到ReferencePipeline当中,然后进行连接,计算
+ *
+ *     Sink (继承consumer) 饮水槽 让一个流从head开始,不断的通过中间若干个statelessOp/statefulOp,再到TerminalOp [TerminalSink]
+ * 并行就是调用ForkJoinTask框架
  *
  *
  */

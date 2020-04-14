@@ -1,7 +1,7 @@
 package com.hhy.jdk8.stream2;
 
 /**
- * 5.AutoCloseable
+ * 5.AutoCloseable since jdk 1.7
  */
 public class AutoCloseableTest implements AutoCloseable{
 
@@ -15,7 +15,7 @@ public class AutoCloseableTest implements AutoCloseable{
     }
 
     public static void main(String[] args) throws Exception {
-        //
+        //try-with-resources block  自动执行close方法
         try (AutoCloseableTest autoCloseableTest = new AutoCloseableTest()){
             autoCloseableTest.doSomething();
         }
